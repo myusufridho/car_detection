@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Car Control Simulation</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        #carCanvas {
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            width: 800px;
+            height: 500px;
+            margin: auto;
+            background: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .status-box {
+            margin-top: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            margin: auto;
+            width: 60%;
+        }
+        table, th, td {
+            border: 1px solid #444;
+            padding: 8px;
+            text-align: center;
+        }
+        th { background: #f0f0f0; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <h1>AI Car Component Detection</h1>
+
+    <div id="carCanvas">
+        <img src="{{ url_for('static', filename='car.png') }}" width="750" height="450" id="carImage">
+    </div>
+
+    <div class="status-box">
+        <h2>Realtime Status</h2>
+        <table id="statusTable">
+            <tr><th>Component</th><th>Status</th></tr>
+            <tr><td>Front Left Door</td><td id="front_left">?</td></tr>
+            <tr><td>Front Right Door</td><td id="front_right">?</td></tr>
+            <tr><td>Rear Left Door</td><td id="rear_left">?</td></tr>
+            <tr><td>Rear Right Door</td><td id="rear_right">?</td></tr>
+            <tr><td>Hood</td><td id="hood">?</td></tr>
+        </table>
+        <p><a href="/latest.jpg" target="_blank">Download Latest Screenshot</a></p>
+    </div>
+
+    <script>
+        async function captureUserView() {
+            let carDiv = document.getElementById("carCanvas");
+            try {
+                let canvas = await html2canvas(carDiv);
+                let dataURL = canvas.toDataURL("image/jpeg");
+
+                let res = await fetch("/predict", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ image: dataURL })
+                });
+                let result = await res.json();
+
+                // update status table
+                for (let key in result) {
+                    if (document.getElementById(key)) {
+                        document.getElementById(key).innerText = 
+                            result[key].status + " (" + (result[key].conf * 100).toFixed(1) + "%)";
+                    }
+                }
+            } catch (err) {
+                console.error("Error capture:", err);
+            }
+        }
+
+        // capture setiap 5 detik
+        setInterval(captureUserView, 5000);
+    </script>
+</body>
+</html>
